@@ -32,6 +32,7 @@ At-a-glance view of every decision, sorted by status, then by impact (structural
 | D-036 | [Write authorisation: open append, amend restricted to the authoring organisation](#write-authorisation-open-append-amend-restricted-to-the-authoring-organisation) | ✅ Decided | 🔴 High | **Authorisation** |
 | D-038 | [API versioning: versioned during beta, unversioned at GA](#api-versioning-versioned-during-beta-unversioned-at-ga) | ✅ Decided | 🔴 High | **Versioning** |
 | D-039 | [Cross-cutting API standards for new endpoints](#cross-cutting-api-standards-for-new-endpoints) | ✅ Decided | 🔴 High | **API conventions** |
+| D-041 | [Receipt without a prior delivery: create an empty Delivery instead of a no-Delivery receipt endpoint](#receipt-without-a-prior-delivery-create-an-empty-delivery-instead-of-a-no-delivery-receipt-endpoint) | ✅ Decided | 🔴 High | **Receipt** |
 | D-004 | [Receipt path parameter stays `{wasteTrackingId}`](#receipt-path-parameter-stays-wastetrackingid) | ✅ Decided | 🟠 Medium | **Identifiers** |
 | D-006 | [Cross-check of receipt details against the linked drop-off](#cross-check-of-receipt-details-against-the-linked-drop-off) | ✅ Decided | 🟠 Medium | **Receipt** |
 | D-008 | [Carrier always required; broker or dealer optional, at every stage](#carrier-always-required-broker-or-dealer-optional-at-every-stage) | ✅ Decided | 🟠 Medium | **Actors** |
@@ -117,7 +118,7 @@ At-a-glance view of every decision, sorted by status, then by impact (structural
 
 ### Receipt is linked to a drop-off via the Transfer ID (path parameter)
 
-**D-005** · ✅ Decided · Impact: 🔴 High · Area: **Receipt** · Related: [D-006](#d-006), [D-016](#d-016), [D-022](#d-022)
+**D-005** · ✅ Decided · Impact: 🔴 High · Area: **Receipt** · Related: [D-006](#d-006), [D-016](#d-016), [D-022](#d-022), [D-041](#d-041)
 
 **Context.** A receipt should be linkable to the drop-off that preceded it, via the Transfer ID. An earlier decision added `transferId` as an optional field on the `POST /movements/receive` request body, so Phase 1 receivers could omit it and new flows could supply it.
 
@@ -129,7 +130,7 @@ At-a-glance view of every decision, sorted by status, then by impact (structural
 
 ### Cross-check of receipt details against the linked drop-off
 
-**D-006** · ✅ Decided · Impact: 🟠 Medium · Area: **Receipt** · Related: [D-005](#d-005), [D-021](#d-021), [D-022](#d-022), [D-032](#d-032)
+**D-006** · ✅ Decided · Impact: 🟠 Medium · Area: **Receipt** · Related: [D-005](#d-005), [D-021](#d-021), [D-022](#d-022), [D-032](#d-032), [D-041](#d-041)
 
 **Context.** A receipt recorded against a Transfer carries carrier and waste details that overlap with details declared earlier in the movement journey. These could be required to match exactly, or treated as an opportunity to cross-check. Waste details are declared once, at Creation — the classification plus estimated weights held on the Movement. The operational events that follow, Collection and Drop-off, are carrier/site/timing records and carry no waste payload (see [D-032](#d-032), and for the drop-off place model [D-007](#d-007)). The receipt is therefore the first point in the journey where _actual_ waste weights are recorded, and the only earlier comparison source for waste is the Creation declaration.
 
@@ -146,7 +147,7 @@ Because the Transfer ID is the path parameter on `POST /transfers/{transferId}/r
 
 ### Drop-off is many-to-one against Movement IDs
 
-**D-007** · ✅ Decided · Impact: 🔴 High · Area: **Drop-off** · Related: [D-009](#d-009), [D-015](#d-015), [D-018](#d-018), [D-017](#d-017)
+**D-007** · ✅ Decided · Impact: 🔴 High · Area: **Drop-off** · Related: [D-009](#d-009), [D-015](#d-015), [D-018](#d-018), [D-017](#d-017), [D-041](#d-041)
 
 **Context.** A multi-collection run delivers several Movements at once to the same receiver site. The drop-off endpoint could either be Movement-scoped (one drop-off per Movement, with a "primary" Movement on the URL) or aggregate (one drop-off covering many Movements, with the Movement IDs in the body).
 
@@ -345,7 +346,7 @@ This decision also resolves the earlier "Static and transit collection collapsed
 
 ### Drop-off PUT restricted to soft-delete only
 
-**D-017** · ✅ Decided · Impact: 🟠 Medium · Area: **Lifecycle** · Related: [D-007](#d-007), [D-009](#d-009), [D-016](#d-016), [D-018](#d-018), [D-034](#d-034)
+**D-017** · ✅ Decided · Impact: 🟠 Medium · Area: **Lifecycle** · Related: [D-007](#d-007), [D-009](#d-009), [D-016](#d-016), [D-018](#d-018), [D-034](#d-034), [D-041](#d-041)
 
 **Context.** A drop-off is a Transfer addressed by `transferId` (`PUT /transfers/{transferId}`), covering all the Movements named in its `movementIds`; there is no per-Movement view of a drop-off — that was settled by the Level 2 restructure (see [D-016](#d-016)). A drop-off records a physical handover of waste at a place at a point in time: the carrier-declared site, the aggregated Movement IDs, the carrier, and the actual timestamp. As an audit fact about something that has already happened, policy requires it to be immutable once recorded.
 
@@ -369,7 +370,7 @@ Correcting a recorded drop-off is therefore not an in-place edit: soft-delete th
 
 ### Drop-off address derivability
 
-**D-018** · ✅ Decided · Impact: 🟠 Medium · Area: **Drop-off** · Related: [D-007](#d-007), [D-017](#d-017)
+**D-018** · ✅ Decided · Impact: 🟠 Medium · Area: **Drop-off** · Related: [D-007](#d-007), [D-017](#d-017), [D-041](#d-041)
 
 **Context.** The drop-off address (`dropOff.address`) was initially optional in the spec. The open question was whether it should be **mandatory**, stay **optional**, or be **removed entirely** (the latter only if always derivable from the linked Movements' planned receiver). Two facts were relevant: the planned receiver is an _estimate_, not authoritative; and the rejection-retry case can deliver to a different receiver than planned, so the actual drop-off location can diverge from the estimate.
 
@@ -518,7 +519,7 @@ The two credentials are issued through different paths, and Phase 2 changes neit
 
 ### Rename drop-off and Transfer ID to delivery and Delivery ID
 
-**D-040** · ✅ Decided · Impact: 🟢 Low · Area: **Naming** · Related: [D-005](#d-005), [D-007](#d-007), [D-013](#d-013), [D-018](#d-018), [D-028](#d-028), [D-036](#d-036)
+**D-040** · ✅ Decided · Impact: 🟢 Low · Area: **Naming** · Related: [D-005](#d-005), [D-007](#d-007), [D-013](#d-013), [D-018](#d-018), [D-028](#d-028), [D-036](#d-036), [D-041](#d-041)
 
 **Context.** The event where a driver hands waste to a receiver, and the identifier it mints, were named "drop-off" and "Transfer ID" (`POST /transfers`, `transferId`). This reads awkwardly against the rest of the journey vocabulary (creation, collection, receipt) and "transfer" invites confusion with unrelated senses of the word (e.g. transfer of ownership/duty of care, data transfer).
 
@@ -531,6 +532,35 @@ The two credentials are issued through different paths, and Phase 2 changes neit
 - The "Drop-off" tag/operation wording → "Delivery"
 
 This is a pure rename. It does not change the resource shape, the many-to-one cardinality against Movement IDs ([D-007](#d-007)), the identifier format ([D-013](#d-013)), or any other already-decided behaviour — those entries are left as originally written and now read with the old "drop-off"/"Transfer ID" terms; they are not being retroactively edited.
+
+<a id="d-041"></a>
+
+### Receipt without a prior delivery: create an empty Delivery instead of a no-Delivery receipt endpoint
+
+**D-041** · ✅ Decided · Impact: 🔴 High · Area: **Receipt** · Related: [D-005](#d-005), [D-006](#d-006), [D-007](#d-007), [D-017](#d-017), [D-018](#d-018), [D-022](#d-022), [D-025](#d-025), [D-040](#d-040)
+
+**Context.** In the Level 2 model a receipt is a sub-resource of a Delivery, addressed as `POST /deliveries/{deliveryId}/receipt` ([D-005](#d-005), and Option 1 of the still-open [D-022](#d-022)). `POST /deliveries` itself requires `movementIds` with `minItems: 1` ([D-007](#d-007)) — a Delivery is normally created from one or more Movements. But an exceptional case exists where waste is received with no prior Movement/Collection/Delivery trail at all (e.g. received directly, with none of the earlier journey recorded digitally). One way to handle this would be a separate, standalone endpoint — a `reason` field taken directly on the receipt payload, with no Delivery behind it at all. That shape has a structural problem: a receipt never carries its own exposed id ([D-012](#d-012)), so a receipt recorded with no Delivery behind it would have **no addressable identifier at all** — it could never be looked up, corrected, or, once [D-025](#d-025) settles the acceptance/rejection model, have an outcome recorded against it. A ticket-derived scenario for this case (DWTC-140/142, `scenarios/beta-1/receipt/contract-shape-confirmation-for-the-receipt-endpoint.md`) already expects "a Delivery ID is returned in the response" for exactly this case — which a no-Delivery endpoint structurally cannot provide, since there is no Delivery to have created one.
+
+**Decision.** Do not add a no-Delivery receipt endpoint. Every receipt is recorded through `POST /deliveries/{deliveryId}/receipt`; there is no second way in. For the exceptional case, the software provider first creates a Delivery with no Movements attached, then receipts against it like any other Delivery:
+
+- `movementIds` on `POST /deliveries` is relaxed from `minItems: 1` to `minItems: 0`.
+- When `movementIds` is empty, `reason` becomes mandatory on the Delivery request, explaining why there is no prior Movement/Collection trail. When `movementIds` is non-empty, `reason` is not required.
+- The response is the ordinary `deliveryResponse` (`{ data: { deliveryId }, validation }`), so an empty Delivery gets a real, addressable Delivery ID exactly like a normal one.
+- The provider then calls `POST /deliveries/{deliveryId}/receipt` exactly as for any other Delivery. The handler loads the Delivery by ID; if it finds no `movementIds` attached, it knows it is on the exceptional path and can apply whatever extra validation or fields that case needs (see Open, below) — the receipt request/response shape itself does not need its own no-Delivery branch.
+
+**Consequences.**
+
+- `recordReceiptResponse.data` stays `null` for every receipt, exceptional or not — the trackable id lives on the Delivery, one level up, not on the Receipt.
+- Every receipt — exceptional or not — is reachable by its Delivery ID: it can be looked up, corrected via `PUT`, and, once [D-025](#d-025) lands, carry an acceptance/rejection outcome. A no-Delivery receipt endpoint would not have offered that.
+- [D-007](#d-007)'s many-to-one-against-Movement-IDs cardinality gets a documented zero case: `movementIds: []` is valid on `POST /deliveries` only when `reason` is supplied.
+- [D-018](#d-018)'s mandatory delivery address is unaffected — an empty Delivery still records where the waste was actually dropped off, which is exactly the audit fact D-018 protects, and nothing about that field's rationale depended on `movementIds` being non-empty.
+- Satisfies the DWTC-140/142 scenario's expectation that a Delivery ID is returned for a receipt with no prior delivery trail — it is a genuine Delivery ID, created up front by `POST /deliveries`, not implied by the receipt call. `scenarios/beta-1/receipt/contract-shape-confirmation-for-the-receipt-endpoint.md`'s two "Null Delivery ID handling" scenarios need rewriting to match: "no Delivery ID, reason on the receipt payload" becomes "an empty Delivery, created with a reason, then a normal receipt against its Delivery ID."
+
+**Open questions — flagged by the proposer, not yet resolved:**
+
+1. **Extra fields at receipt time.** When the receipt handler loads a Delivery with no `movementIds`, should it require additional fields it would otherwise have sourced from the linked Movement (e.g. the waste classification the [D-006](#d-006) cross-check normally compares against)? Shape not decided here.
+2. **Correction of an empty Delivery.** [D-017](#d-017) restricts a Delivery's `PUT` to the `isDeleted` flag only. If the exceptional path later needs to fill in the extra fields from (1) after the Delivery is created, that either needs an exception to D-017's immutability for empty Deliveries specifically, or those fields belong on the receipt instead — to be confirmed.
+3. **`reason` scope.** Whether `reason` is ever meaningful (optionally) when `movementIds` is non-empty, e.g. to explain a partial delivery, or is strictly reserved for the empty case.
 
 ## Open
 
@@ -566,7 +596,7 @@ A receipt's waste details are cross-checked against the linked Movement record (
 
 ### Receipt migration: new endpoint vs extend Phase 1
 
-**D-022** · ⏳ Open · Impact: 🔴 High · Area: **Receipt** · Related: [D-005](#d-005), [D-006](#d-006), [D-015](#d-015), [D-016](#d-016), [D-023](#d-023)
+**D-022** · ⏳ Open · Impact: 🔴 High · Area: **Receipt** · Related: [D-005](#d-005), [D-006](#d-006), [D-015](#d-015), [D-016](#d-016), [D-023](#d-023), [D-041](#d-041)
 
 How receivers move from the Phase 1 receipt to the linked Phase 2 receipt is undecided. Both options share one internal receipt function, and both require a prior drop-off to obtain a `transferId`, so implementation cost and the drop-off dependency are equivalent either way — the difference is contract shape and migration friction.
 
@@ -600,7 +630,7 @@ Phase 1 minted `wasteTrackingId` at receipt; Phase 2 mints `movementId` at creat
 
 ### Receipt acceptance / rejection outcome (new in Phase 2)
 
-**D-025** · ⏳ Open · Impact: 🔴 High · Area: **Receipt** · Related: [D-015](#d-015)
+**D-025** · ⏳ Open · Impact: 🔴 High · Area: **Receipt** · Related: [D-015](#d-015), [D-041](#d-041)
 
 Phase 1 has no rejection model — recording a receipt means the waste was accepted; there is no way to record a full rejection, a partial acceptance, or waste returned to the producer. Phase 2 must support `acceptAll` / `rejectAll` / `acceptPart-accepted` / `acceptPart-rejected` as first-class receipt outcomes; Phase 2 must decide whether to introduce a receipt outcome concept and, if so, what it records (outcome indicator, accepted vs rejected quantities, reason, what happens to the rejected portion). Undecided; needs policy-team input. Structurally, whatever is chosen sits on the single Receipt, not on a split Movement (see the 1:1 decision).
 
